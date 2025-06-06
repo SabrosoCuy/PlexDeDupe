@@ -276,12 +276,11 @@ IMPORTANT NOTES:
 - The token is tied to your account
 - If you suspect your token was compromised, sign out of all devices
 
-ABOUT FILE DELETION:
-When processing deletions, you'll be asked if you want to:
-1. Remove from Plex only (files remain on disk), OR
-2. Remove from Plex AND delete physical files
-
-Choose carefully - deleted files cannot be recovered!"""
+FILE DELETION WARNING:
+- "Allow media deletion" MUST be enabled in Plex settings
+- Without this setting, PlexDeDupe will fail with a 403 error
+- Local drives: Files go to Recycle Bin/Trash (recoverable)
+- Network drives: Files are PERMANENTLY deleted (NOT recoverable!)"""
         
         text_widget.insert('1.0', help_text)
         text_widget.config(state='disabled')
@@ -623,13 +622,12 @@ Choose carefully - deleted files cannot be recovered!"""
             messagebox.showinfo("Dry Run Results", message)
             return
         
-        message = f"Are you sure you want to proceed with deletion?\n\n"
-        message += f"Items to process: {len(items_to_delete)}\n"
+        message = f"Are you sure you want to delete {len(items_to_delete)} duplicate(s)?\n\n"
         message += f"Total space to be freed: {total_size:.2f} GB\n\n"
-        message += "You will be asked whether to:\n"
-        message += "• Remove from Plex only (files stay on disk), OR\n"
-        message += "• Remove from Plex AND delete files permanently\n\n"
-        message += "This action cannot be undone!"
+        message += "⚠️ WARNING: Check your file locations!\n"
+        message += "• Local drives: Files go to Recycle Bin\n"
+        message += "• Network drives: Files are PERMANENTLY deleted!\n\n"
+        message += "This action cannot be undone through PlexDeDupe!"
         
         if messagebox.askyesno("Confirm Deletion", message, icon='warning'):
             self._perform_deletions(items_to_delete)
@@ -678,10 +676,20 @@ Choose carefully - deleted files cannot be recovered!"""
                 
                 # Delete from Plex
                 media_to_delete = item['media_obj']
-                media_to_delete.delete()
-                
-                success_count += 1
-                status_text.insert(tk.END, f"  ✓ Removed from Plex database\n")
+                try:
+                    media_to_delete.delete()
+                    success_count += 1
+                    status_text.insert(tk.END, f"  ✓ Removed from Plex\n")
+                    # Check if file path looks like a network path
+                    if file_path.startswith('\\\\') or file_path.startswith('//') or ':' not in file_path[:2]:
+                        status_text.insert(tk.END, f"    ⚠️ Network path - file permanently deleted\n")
+                    else:
+                        status_text.insert(tk.END, f"    ↻ Local file - moved to Recycle Bin\n")
+                except Exception as delete_error:
+                    if "403" in str(delete_error) or "Forbidden" in str(delete_error):
+                        raise Exception("'Allow media deletion' is not enabled in Plex settings. Please enable it to use this tool.")
+                    else:
+                        raise delete_error
                 
                 # Delete physical file if requested
                 if delete_files and file_path != 'Unknown':
