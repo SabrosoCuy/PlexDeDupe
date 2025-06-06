@@ -2,7 +2,7 @@ import sys
 import subprocess
 import importlib.util
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 # Check and install dependencies
 def check_and_install_dependencies():
@@ -75,7 +75,8 @@ def check_and_install_dependencies():
 check_and_install_dependencies()
 
 # Now import the rest
-from tkinter import ttk, scrolledtext
+import tkinter as tk
+from tkinter import ttk, messagebox, scrolledtext
 import threading
 from plexapi.server import PlexServer
 from collections import defaultdict
