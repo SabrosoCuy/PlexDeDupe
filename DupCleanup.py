@@ -1,5 +1,81 @@
+import sys
+import subprocess
+import importlib.util
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import messagebox
+
+# Check and install dependencies
+def check_and_install_dependencies():
+    """Check if required packages are installed and install them if needed."""
+    # First check if plexapi is installed
+    if importlib.util.find_spec('plexapi') is None:
+        # Create a simple GUI prompt
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        
+        result = messagebox.askyesno(
+            "Missing Dependency",
+            "PlexDeDupe requires the 'plexapi' package which is not installed.\n\n"
+            "Would you like to install it automatically?\n\n"
+            "This will run: pip install plexapi",
+            icon='question'
+        )
+        
+        if result:
+            # Show installation window
+            install_window = tk.Toplevel()
+            install_window.title("Installing Dependencies")
+            install_window.geometry("400x150")
+            
+            # Center the window
+            install_window.update_idletasks()
+            x = (install_window.winfo_screenwidth() // 2) - (install_window.winfo_width() // 2)
+            y = (install_window.winfo_screenheight() // 2) - (install_window.winfo_height() // 2)
+            install_window.geometry(f"+{x}+{y}")
+            
+            label = tk.Label(install_window, text="Installing plexapi...\nThis may take a moment.", pady=20)
+            label.pack()
+            
+            progress = ttk.Progressbar(install_window, mode='indeterminate')
+            progress.pack(pady=10, padx=20, fill=tk.X)
+            progress.start(10)
+            
+            install_window.update()
+            
+            try:
+                # Install the package
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "plexapi"], 
+                                    stdout=subprocess.DEVNULL, 
+                                    stderr=subprocess.DEVNULL)
+                install_window.destroy()
+                messagebox.showinfo("Success", "plexapi has been installed successfully!\n\nPlexDeDupe will now start.")
+            except subprocess.CalledProcessError:
+                install_window.destroy()
+                messagebox.showerror(
+                    "Installation Failed",
+                    "Failed to install plexapi automatically.\n\n"
+                    "Please install it manually by running:\n"
+                    "pip install plexapi\n\n"
+                    "in your command prompt or terminal."
+                )
+                sys.exit(1)
+        else:
+            messagebox.showinfo(
+                "Installation Required",
+                "PlexDeDupe requires plexapi to function.\n\n"
+                "Please install it manually by running:\n"
+                "pip install plexapi\n\n"
+                "in your command prompt or terminal."
+            )
+            sys.exit(1)
+        
+        root.destroy()
+
+# Check dependencies before importing
+check_and_install_dependencies()
+
+# Now import the rest
+from tkinter import ttk, scrolledtext
 import threading
 from plexapi.server import PlexServer
 from collections import defaultdict
