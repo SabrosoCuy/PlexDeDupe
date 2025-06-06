@@ -43,7 +43,7 @@ PlexAPI Python library
 🚀 Installation
 Clone this repository:
 bash
-git clone https://github.com/yourusername/PlexDeDupe.git
+git clone https://github.com/SabrosoCuy/PlexDeDupe.git
 cd PlexDeDupe
 Install required dependency:
 bash
