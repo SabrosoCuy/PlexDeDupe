@@ -1,0 +1,4 @@
+Python 3.6 or higher
+Plex Media Server
+Plex authentication token
+PlexAPI Python library
