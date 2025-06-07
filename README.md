@@ -8,12 +8,19 @@ A user-friendly GUI tool for managing duplicate media files in Plex Media Server
 Smart Detection: Automatically finds all movies and TV episodes with multiple versions
 Flexible Strategy: Choose to keep either the largest (best quality) or smallest (save space) versions
 Visual Interface: Easy-to-use GUI with color-coded actions (green = keep, red = delete)
+Column Filtering: Filter results by any column (title, type, resolution, etc.) to find specific items
 Safe Operation: Dry-run mode shows what would be deleted without making changes
 Space Calculation: Shows exactly how much disk space you'll save
 Manual Override: Double-click any item to change its action
 Token Security: Password-masked token field with show/hide option
 Built-in Help: Detailed instructions for finding your Plex token
+Debug Console: Optional debug window shows connection details and errors for troubleshooting
+Hardlink Mode (Beta): Convert duplicates to hardlinks instead of deleting (saves space without removing files)
 
+Show Image
+Main window showing duplicate detection and filtering
+Show Image
+Optional debug console for troubleshooting
 ⚠️ Important: File Deletion Behavior
 WARNING: Network drives do NOT have a Recycle Bin!
 Local Drives (C:, D:, etc.):
@@ -52,10 +59,10 @@ Make sure it's enabled
 
 📋 Requirements
 
-Python 3.6 or higher
+Python 3.6 or higher (Download Python)
 Plex Media Server with "Allow media deletion" enabled (required!)
 Plex authentication token
-PlexAPI Python library
+PlexAPI Python library (automatically installed on first run)
 
 🚀 Installation
 
@@ -84,6 +91,8 @@ Review the results:
 Items in green will be kept
 Items in red will be deleted
 Double-click any item to toggle its action
+Use filters: Type in the filter boxes above results to search for specific items
+Click "Clear Filters" to remove all filters
 
 
 Choose your deletion strategy:
@@ -92,19 +101,31 @@ Keep largest (preserve quality)
 Keep smallest (maximize space savings)
 
 
+Optional: Enable debug console:
+
+Check "Show debug console" to see detailed connection and processing information
+Helpful for troubleshooting connection issues
+
+
 Enable/disable dry run:
 
 ✅ Checked = Preview only (recommended for first use)
 ❌ Unchecked = Actually perform deletions
 
 
+Advanced Options (Beta):
+
+Hardlink Mode: Convert duplicates to hardlinks instead of deleting
+Only works on same drive - files on different drives will be skipped
+See Hardlink Mode section below for details
+
+
 Click "Process Selected Deletions" to execute
+
 
 ⚠️ CHECK FIRST: Are your files on a network drive? They'll be permanently deleted!
 Local drives: Files go to Recycle Bin/Trash (recoverable)
 Network drives: Files are permanently deleted (NOT recoverable)
-
-
 
 🔑 Finding Your Plex Token
 Click the ? button in the app for full instructions, or:
@@ -174,6 +195,12 @@ Q: What if I want to free up space immediately?
 A: After running PlexDeDupe on local drives, empty your Recycle Bin/Trash. For network drives, space is freed immediately.
 Q: Can I preview what will be deleted?
 A: Yes! Dry Run mode is enabled by default. It shows you exactly what would be deleted without actually doing anything.
+Q: What is Hardlink Mode?
+A: Instead of deleting duplicates, it converts them to hardlinks - multiple file paths pointing to the same data. This saves space without removing files. Only works on the same drive.
+Q: Why are some files skipped in Hardlink Mode?
+A: Hardlinks only work on the same drive. Files on different drives (like C: and D:) or network drives cannot be hardlinked and will be skipped.
+Q: How do I find specific items in my results?
+A: Use the filter boxes above the results table. Type any text to search - for example, type "4K" in Resolution to see only 4K files, or "movie" in Type to see only movies. Click "Clear Filters" to reset.
 🐛 Known Issues
 
 403 Forbidden Error: Enable "Allow media deletion" in Plex settings
@@ -181,7 +208,43 @@ Network drives: No Recycle Bin - files are permanently deleted
 NAS/Network shares: Deletions are immediate and permanent
 Very large libraries may take time to scan
 Some NAS devices may have permission issues with deletion
+Filtering: Parent items are shown if any child matches the filter
 
+🔗 Hardlink Mode (Beta Feature)
+Convert duplicates to hardlinks instead of deleting them!
+What are hardlinks?
+Hardlinks allow the same file to appear in multiple locations without using extra disk space. Instead of having two copies of a 50GB movie, you have one file that appears in both places.
+Benefits:
+
+Save disk space without losing files
+Keep your folder organization intact
+Both "copies" stay in sync (they're the same file)
+Plex still sees both locations
+
+Limitations:
+⚠️ Important: Hardlinks have strict requirements:
+
+Same Drive Only: Both files MUST be on the same drive/volume
+No Network Drives: Does NOT work on network shares, NAS, or mapped drives
+No Cross-Drive: Cannot hardlink between C: and D: drives
+Identical Files: Files must have exactly the same content
+
+How to use:
+
+Enable "Convert to hardlinks instead of deleting" in Advanced Options
+Select which version to keep (others will become hardlinks to it)
+Files on different drives will be automatically skipped
+Check the debug console to see which files were skipped and why
+
+Example:
+Before (using 100GB):
+C:\Movies\Avatar.mkv (50GB)
+C:\4K-Movies\Avatar.mkv (50GB)
+
+After hardlinking (using 50GB):
+C:\Movies\Avatar.mkv → (points to same file)
+C:\4K-Movies\Avatar.mkv → (points to same file)
+Both paths still exist and work, but they share the same disk space!
 📞 Support
 If you encounter issues:
 
@@ -189,6 +252,14 @@ If you encounter issues:
 Check that your Plex server is running
 Verify your token is correct
 Ensure you have proper permissions for file deletion
+Enable Debug Console: Check "Show debug console" to see detailed connection info and errors
+
+The debug console shows:
+
+Connection attempts and errors
+Detailed scan progress
+File deletion details
+Helpful error messages for troubleshooting
 
 For bugs and feature requests, please open an issue.
 🙏 Acknowledgments

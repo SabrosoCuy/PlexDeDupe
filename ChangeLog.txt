@@ -1,0 +1,52 @@
+# CHANGELOG
+
+All notable changes to PlexDeDupe will be documented in this file.
+
+## [1.2.0]
+### Added
+- Column filtering functionality for all result columns
+- Filter by Title, Type, Resolution, Codec, Size, Path, or Action
+- Live filtering as you type
+- Clear Filters button appears when filters are active
+- Case-insensitive search with partial matching
+- Parent items shown when children match filters
+
+### Improved
+- Enhanced UI with filter row above results table
+- Better status messages indicating filter availability
+- Automatic filter clearing when loading new results
+- Dependency installer now supports multiple packages for future expansion
+
+## [1.1.0]
+### Added
+- **Hardlink Mode (Beta)**: Convert duplicates to hardlinks instead of deleting
+- Advanced Options section for beta features
+- Automatic hardlink compatibility checking
+- SHA256 hash verification for file identity
+- Detailed logging for hardlink operations
+- Progress indication for hash calculation on large files
+- Window title shows when in Hardlink Mode
+
+### Improved
+- Enhanced debug console with more operation details
+- Better error messages for connection issues
+- More informative status updates
+
+### Fixed
+- Network path detection for better deletion warnings
+- Handling of missing file attributes
+
+## [1.0.0]
+### Initial Release
+- Scan Plex library for duplicate media
+- Keep largest or smallest version options
+- Color-coded interface (green=keep, red=delete)
+- Dry-run mode for safe preview
+- Manual override by double-clicking
+- Automatic space calculation
+- Token security with show/hide
+- Built-in Plex token help
+- Debug console for troubleshooting
+- Local drive files to Recycle Bin
+- Network drive permanent deletion warnings
+- Automatic dependency installation
