@@ -2,7 +2,7 @@
 """
 PlexDeDupe - Duplicate Media Manager for Plex
 A GUI tool to find and remove duplicate movies and TV episodes in Plex Media Server.
-https://github.com/yourusername/PlexDeDupe
+https://github.com/SabrosoCuy/PlexDeDupe
 
 Features:
 - Scans Plex library for duplicate media files
@@ -21,7 +21,7 @@ Requires:
 
 No additional dependencies needed for filtering or hardlink features.
 
-Version: 1.2.0 (with Hardlink support and Column Filtering)
+Version: 1.2.1 (Bug fixes for episode metadata handling)
 """
 
 import sys
@@ -860,6 +860,7 @@ FILE DELETION WARNING:
             # Find duplicates
             self.update_status("Scanning for duplicate media...")
             self.log_message("Starting duplicate media scan...", "INFO")
+            self.log_message("Note: If scan fails on a specific show/movie, check debug console for details", "INFO")
             
             # List libraries
             libraries = list(self.plex.library.sections())
@@ -949,42 +950,73 @@ FILE DELETION WARNING:
         for library in self.plex.library.sections():
             if library.type == 'show':
                 self.log_message(f"Scanning TV library: {library.title}", "INFO")
-                all_shows = library.all()
-                self.log_message(f"  Total shows in library: {len(all_shows)}", "INFO")
-                
-                for show in all_shows:
-                    show_count += 1
-                    episodes = show.episodes()
+                try:
+                    all_shows = library.all()
+                    self.log_message(f"  Total shows in library: {len(all_shows)}", "INFO")
                     
-                    for episode in episodes:
-                        episode_count += 1
-                        if len(episode.media) > 1:
-                            episode_dupe_count += 1
-                            media_list = []
-                            episode_title = f"{show.title} - S{episode.seasonNumber:02d}E{episode.episodeNumber:02d}"
-                            self.log_message(f"  Found duplicate: {episode_title} ({len(episode.media)} versions)", "WARNING")
+                    for show in all_shows:
+                        show_count += 1
+                        show_title = show.title if show.title else f"Unknown Show (ID: {show.ratingKey})"
+                        
+                        try:
+                            episodes = show.episodes()
                             
-                            for media in episode.media:
+                            for episode in episodes:
+                                episode_count += 1
                                 try:
-                                    size = self.get_media_size(media)
-                                    media_info = {
-                                        'media_obj': media,
-                                        'resolution': str(media.videoResolution) if hasattr(media, 'videoResolution') and media.videoResolution else 'Unknown',
-                                        'codec': str(media.videoCodec) if hasattr(media, 'videoCodec') and media.videoCodec else 'Unknown',
-                                        'bitrate': media.bitrate if hasattr(media, 'bitrate') else 0,
-                                        'size': size,
-                                        'file': media.parts[0].file if hasattr(media, 'parts') and media.parts and hasattr(media.parts[0], 'file') else 'Unknown',
-                                        'episode_obj': episode
-                                    }
-                                    media_list.append(media_info)
-                                except Exception as e:
-                                    error_msg = f"Error processing media for {episode_title}: {str(e)}"
-                                    self.log_message(f"    {error_msg}", "ERROR")
-                                    print(f"[PlexDeDupe] {error_msg}")
+                                    if len(episode.media) > 1:
+                                        episode_dupe_count += 1
+                                        media_list = []
+                                        
+                                        # Handle missing season/episode numbers
+                                        try:
+                                            season_num = episode.seasonNumber if episode.seasonNumber is not None else 0
+                                            episode_num = episode.episodeNumber if episode.episodeNumber is not None else 0
+                                            episode_title = episode.title if episode.title else "Unknown Episode"
+                                            
+                                            episode_display = f"{show_title} - S{season_num:02d}E{episode_num:02d}"
+                                            if episode_title != "Unknown Episode":
+                                                episode_display += f" - {episode_title}"
+                                            
+                                            self.log_message(f"  Found duplicate: {episode_display} ({len(episode.media)} versions)", "WARNING")
+                                        except Exception as format_error:
+                                            # Fallback display if formatting fails
+                                            episode_display = f"{show_title} - Episode (formatting error)"
+                                            self.log_message(f"  Error formatting episode info for {show_title}: {str(format_error)}", "ERROR")
+                                            self.log_message(f"    Raw data - Season: {getattr(episode, 'seasonNumber', 'None')}, Episode: {getattr(episode, 'episodeNumber', 'None')}, Title: {getattr(episode, 'title', 'None')}", "ERROR")
+                                        
+                                        for media in episode.media:
+                                            try:
+                                                size = self.get_media_size(media)
+                                                media_info = {
+                                                    'media_obj': media,
+                                                    'resolution': str(media.videoResolution) if hasattr(media, 'videoResolution') and media.videoResolution else 'Unknown',
+                                                    'codec': str(media.videoCodec) if hasattr(media, 'videoCodec') and media.videoCodec else 'Unknown',
+                                                    'bitrate': media.bitrate if hasattr(media, 'bitrate') else 0,
+                                                    'size': size,
+                                                    'file': media.parts[0].file if hasattr(media, 'parts') and media.parts and hasattr(media.parts[0], 'file') else 'Unknown',
+                                                    'episode_obj': episode
+                                                }
+                                                media_list.append(media_info)
+                                            except Exception as e:
+                                                error_msg = f"Error processing media for {episode_display}: {str(e)}"
+                                                self.log_message(f"    {error_msg}", "ERROR")
+                                                print(f"[PlexDeDupe] {error_msg}")
+                                                
+                                        if media_list:
+                                            duplicates['shows'][episode_display] = sorted(media_list, key=lambda x: x['size'], reverse=True)
+                                except Exception as episode_error:
+                                    self.log_message(f"  Error processing episode in '{show_title}': {str(episode_error)}", "ERROR")
+                                    self.log_message(f"    Episode details - Season: {getattr(episode, 'seasonNumber', 'None')}, Episode: {getattr(episode, 'episodeNumber', 'None')}", "ERROR")
+                                    continue
                                     
-                            if media_list:
-                                episode_key = f"{show.title} - S{episode.seasonNumber:02d}E{episode.episodeNumber:02d} - {episode.title}"
-                                duplicates['shows'][episode_key] = sorted(media_list, key=lambda x: x['size'], reverse=True)
+                        except Exception as show_error:
+                            self.log_message(f"  Error processing show '{show_title}': {str(show_error)}", "ERROR")
+                            self.log_message(f"  Skipping this show and continuing...", "WARNING")
+                            continue
+                except Exception as lib_error:
+                    self.log_message(f"  Error accessing TV library '{library.title}': {str(lib_error)}", "ERROR")
+                    continue
         
         self.log_message(f"TV scan complete: {show_count} shows, {episode_count} total episodes, {episode_dupe_count} with duplicates", "INFO")
         
